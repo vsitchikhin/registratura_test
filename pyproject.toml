@@ -1,0 +1,43 @@
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["backend", "payment_operator"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",         # pyflakes
+    "I",         # isort
+    "UP",        # pyupgrade
+    "B",         # flake8-bugbear
+    "DJ",        # flake8-django
+    "S",         # bandit (security)
+    "C4",        # flake8-comprehensions
+    "SIM",       # flake8-simplify
+    "RUF",       # ruff-specific
+    "N",         # pep8-naming
+    "T20",       # flake8-print (no print())
+    "A",         # flake8-builtins
+    "PIE",       # flake8-pie
+    "RET",       # flake8-return
+    "ARG",       # flake8-unused-arguments
+    "ERA",       # eradicate (commented-out code)
+    "PL",        # pylint subset
+]
+ignore = [
+    "DJ001",     # null=True on CharField OK for optional fields
+    "RET504",    # unnecessary assignment before return - readability
+    "PLR0913",   # too many arguments - sometimes unavoidable
+    "PLR2004",   # magic value in comparison - overkill for tests
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["config", "payments"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests.py" = ["S101", "S106", "ARG"]
+"**/tests/**" = ["S101", "S106", "ARG"]
+"**/tasks.py" = ["ARG001"]
+"manage.py" = ["PLC0415"]
+"**/views.py" = ["ARG001"]
+"**/urls.py" = ["ARG001"]

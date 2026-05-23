@@ -1,0 +1,44 @@
+repos:
+  - repo: local
+    hooks:
+      # --- pre-commit: fast checks (lint + unit tests on SQLite) ---
+      - id: ruff-lint
+        name: ruff lint
+        entry: .venv/bin/ruff check --force-exclude
+        language: system
+        types: [python]
+
+      - id: ruff-format
+        name: ruff format
+        entry: .venv/bin/ruff format --check --force-exclude
+        language: system
+        types: [python]
+
+      - id: eslint
+        name: eslint
+        entry: bash -c 'cd frontend && npx eslint .'
+        language: system
+        pass_filenames: false
+        files: '^frontend/.*\.(js|jsx)$'
+
+      - id: backend-unit-tests
+        name: backend unit tests
+        entry: bash -c 'cd backend && CELERY_TASK_ALWAYS_EAGER=1 ../.venv/bin/python manage.py test --parallel'
+        language: system
+        pass_filenames: false
+        files: '^backend/.*\.py$'
+
+      # --- pre-push: heavy checks (build all images + tests on Postgres) ---
+      - id: docker-build
+        name: docker build all images
+        entry: bash -c 'docker compose build --quiet'
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: docker-integration-tests
+        name: docker integration tests (Postgres)
+        entry: bash -c 'docker compose run --rm backend python manage.py test; EXIT=$?; docker compose down --timeout 5 > /dev/null 2>&1; exit $EXIT'
+        language: system
+        pass_filenames: false
+        stages: [pre-push]

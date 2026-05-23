@@ -1,0 +1,65 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: registratura
+      POSTGRES_USER: registratura
+      POSTGRES_PASSWORD: registratura
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U registratura"]
+      interval: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-alpine
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    environment:
+      DATABASE_URL: postgres://registratura:registratura@db:5432/registratura
+      CELERY_BROKER_URL: amqp://guest:guest@rabbitmq:5672//
+      PAYMENT_OPERATOR_URL: http://payment-operator:8080/payments
+      WEBHOOK_BASE_URL: http://backend:8000
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  worker:
+    build: ./backend
+    command: celery -A config worker -l info
+    environment:
+      DATABASE_URL: postgres://registratura:registratura@db:5432/registratura
+      CELERY_BROKER_URL: amqp://guest:guest@rabbitmq:5672//
+      PAYMENT_OPERATOR_URL: http://payment-operator:8080/payments
+      WEBHOOK_BASE_URL: http://backend:8000
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  payment-operator:
+    build: ./payment_operator
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080/health')\""]
+      interval: 5s
+      retries: 5
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
