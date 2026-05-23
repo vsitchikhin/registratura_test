@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal
 
 from django.test import TestCase, TransactionTestCase, override_settings
 from rest_framework.test import APIClient
@@ -8,10 +9,10 @@ from .models import LedgerEntry, Payment, PaymentStatus, PaymentWebhookLog, Wall
 PROCESSING = PaymentStatus.PROCESSING
 
 
-def make_payment(wallet, amount=1000, status=PaymentStatus.NEW):
+def make_payment(wallet, amount_minor=1000, status=PaymentStatus.NEW):
     return Payment.objects.create(
         wallet=wallet,
-        amount_minor=amount,
+        amount_minor=amount_minor,
         status=status,
     )
 
@@ -68,7 +69,7 @@ class AmountValidationTests(TestCase):
         )
         self.assertEqual(resp.status_code, 201)
         payment = Payment.objects.get(id=resp.data["id"])
-        self.assertEqual(payment.amount_minor, 10050)
+        self.assertEqual(payment.amount_minor, Decimal("10050.00"))
 
     def test_valid_integer_amount(self):
         resp = self.client.post(
@@ -78,7 +79,7 @@ class AmountValidationTests(TestCase):
         )
         self.assertEqual(resp.status_code, 201)
         payment = Payment.objects.get(id=resp.data["id"])
-        self.assertEqual(payment.amount_minor, 50000)
+        self.assertEqual(payment.amount_minor, Decimal("50000"))
 
     def test_minimum_amount(self):
         resp = self.client.post(
@@ -194,12 +195,13 @@ class WebhookSuccessTests(TransactionTestCase):
         self.assertEqual(self.payment.operator_payment_id, "op_123")
 
         self.wallet.refresh_from_db()
-        self.assertEqual(self.wallet.balance_minor, 10050)
+        self.assertEqual(self.wallet.balance_minor, Decimal("10050"))
 
-        self.assertEqual(LedgerEntry.objects.count(), 1)
-        entry = LedgerEntry.objects.first()
-        self.assertEqual(entry.amount_minor, 10050)
-        self.assertEqual(entry.payment, self.payment)
+        entry = LedgerEntry.objects.get(
+            payment=self.payment,
+            status=PaymentStatus.SUCCEEDED,
+        )
+        self.assertEqual(entry.amount_minor, Decimal("10050"))
 
     def test_failed_webhook(self):
         resp = self.client.post(
@@ -218,8 +220,13 @@ class WebhookSuccessTests(TransactionTestCase):
         self.assertEqual(self.payment.status, PaymentStatus.FAILED)
 
         self.wallet.refresh_from_db()
-        self.assertEqual(self.wallet.balance_minor, 0)
-        self.assertEqual(LedgerEntry.objects.count(), 0)
+        self.assertEqual(self.wallet.balance_minor, Decimal("0"))
+
+        entry = LedgerEntry.objects.get(
+            payment=self.payment,
+            status=PaymentStatus.FAILED,
+        )
+        self.assertEqual(entry.amount_minor, Decimal("10050"))
 
 
 class WebhookIdempotencyTests(TransactionTestCase):
@@ -255,8 +262,11 @@ class WebhookIdempotencyTests(TransactionTestCase):
         self.assertEqual(resp2.status_code, 200)
 
         self.wallet.refresh_from_db()
-        self.assertEqual(self.wallet.balance_minor, 5000)
-        self.assertEqual(LedgerEntry.objects.count(), 1)
+        self.assertEqual(self.wallet.balance_minor, Decimal("5000"))
+        self.assertEqual(
+            LedgerEntry.objects.filter(status=PaymentStatus.SUCCEEDED).count(),
+            1,
+        )
         self.assertEqual(PaymentWebhookLog.objects.count(), 1)
 
     def test_conflict_status_ignored(self):
@@ -286,7 +296,7 @@ class WebhookIdempotencyTests(TransactionTestCase):
         self.assertEqual(self.payment.status, PaymentStatus.SUCCEEDED)
 
         self.wallet.refresh_from_db()
-        self.assertEqual(self.wallet.balance_minor, 5000)
+        self.assertEqual(self.wallet.balance_minor, Decimal("5000"))
 
     def test_webhook_nonexistent_payment(self):
         resp = self.client.post(
@@ -322,7 +332,7 @@ class MultiplePaymentsTests(TransactionTestCase):
             )
 
         self.wallet.refresh_from_db()
-        self.assertEqual(self.wallet.balance_minor, 6000)
+        self.assertEqual(self.wallet.balance_minor, Decimal("6000"))
         self.assertEqual(LedgerEntry.objects.count(), 3)
 
 

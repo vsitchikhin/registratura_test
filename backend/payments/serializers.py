@@ -2,14 +2,14 @@ from decimal import Decimal, InvalidOperation
 
 from rest_framework import serializers
 
-from .models import Payment, Wallet
+from .models import LedgerEntry, Payment, PaymentStatus, Wallet
 
 MIN_AMOUNT = Decimal("0.01")
 MAX_AMOUNT = Decimal("10000000.00")
 
 
 def minor_to_str(amount_minor):
-    return f"{amount_minor / 100:.2f}"
+    return str((amount_minor / 100).quantize(Decimal("0.01")))
 
 
 class WalletSerializer(serializers.ModelSerializer):
@@ -36,17 +36,25 @@ class AmountField(serializers.CharField):
             raise serializers.ValidationError(f"Максимальная сумма: {MAX_AMOUNT} RUB.")
         if amount.as_tuple().exponent < -2:
             raise serializers.ValidationError("Максимум 2 знака после запятой.")
-        return int(amount * 100)
+        return amount * 100
 
 
 class CreatePaymentSerializer(serializers.Serializer):
     amount = AmountField()
 
     def create(self, validated_data):
-        return Payment.objects.create(
-            wallet=self.context["wallet"],
+        wallet = self.context["wallet"]
+        payment = Payment.objects.create(
+            wallet=wallet,
             amount_minor=validated_data["amount"],
         )
+        LedgerEntry.objects.create(
+            wallet=wallet,
+            payment=payment,
+            amount_minor=payment.amount_minor,
+            status=PaymentStatus.NEW,
+        )
+        return payment
 
 
 class PaymentSerializer(serializers.ModelSerializer):

@@ -11,7 +11,7 @@ app = FastAPI()
 
 class PaymentRequest(BaseModel):
     payment_id: str
-    amount_minor: int
+    amount_minor: str
     currency: str
     idempotency_key: str
     webhook_url: str
@@ -32,7 +32,6 @@ async def process_payment(req: PaymentRequest):
     async with httpx.AsyncClient() as client:
         await client.post(req.webhook_url, json=payload, timeout=10)
 
-        # ~20% chance of duplicate webhook (same event_id)
         if random.random() < 0.2:
             await asyncio.sleep(0.5)
             await client.post(req.webhook_url, json=payload, timeout=10)

@@ -2,6 +2,8 @@ import uuid
 
 from django.db import models
 
+MONEY_OPTS = {"max_digits": 14, "decimal_places": 2}
+
 
 class PaymentStatus(models.TextChoices):
     NEW = "new"
@@ -17,7 +19,7 @@ ALLOWED_TRANSITIONS = {
 
 
 class Wallet(models.Model):
-    balance_minor = models.BigIntegerField(default=0)
+    balance_minor = models.DecimalField(default=0, **MONEY_OPTS)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -25,7 +27,7 @@ class Wallet(models.Model):
 class Payment(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     wallet = models.ForeignKey(Wallet, on_delete=models.PROTECT, related_name="payments")
-    amount_minor = models.BigIntegerField()
+    amount_minor = models.DecimalField(**MONEY_OPTS)
     status = models.CharField(
         max_length=20, choices=PaymentStatus.choices, default=PaymentStatus.NEW
     )
@@ -49,9 +51,19 @@ class Payment(models.Model):
 
 class LedgerEntry(models.Model):
     wallet = models.ForeignKey(Wallet, on_delete=models.PROTECT, related_name="ledger_entries")
-    payment = models.OneToOneField(Payment, on_delete=models.PROTECT, related_name="ledger_entry")
-    amount_minor = models.BigIntegerField()
+    payment = models.ForeignKey(Payment, on_delete=models.PROTECT, related_name="ledger_entries")
+    amount_minor = models.DecimalField(**MONEY_OPTS)
+    status = models.CharField(
+        max_length=20,
+        choices=PaymentStatus.choices,
+        default=PaymentStatus.NEW,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["payment", "status"], name="unique_payment_status"),
+        ]
 
 
 class PaymentWebhookLog(models.Model):

@@ -77,12 +77,14 @@ class WebhookView(APIView):
                 payment.operator_payment_id = data["operator_payment_id"]
                 payment.save()
 
+                LedgerEntry.objects.create(
+                    wallet=payment.wallet,
+                    payment=payment,
+                    amount_minor=payment.amount_minor,
+                    status=new_status,
+                )
+
                 if new_status == PaymentStatus.SUCCEEDED:
-                    LedgerEntry.objects.create(
-                        wallet=payment.wallet,
-                        payment=payment,
-                        amount_minor=payment.amount_minor,
-                    )
                     Wallet.objects.filter(
                         id=payment.wallet_id,
                     ).update(
