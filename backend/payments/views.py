@@ -18,8 +18,7 @@ class WalletView(generics.RetrieveAPIView):
     serializer_class = WalletSerializer
 
     def get_object(self):
-        wallet, _ = Wallet.objects.get_or_create(id=1)
-        return wallet
+        return Wallet.objects.get(id=1)
 
 
 class PaymentListCreateView(generics.ListCreateAPIView):
@@ -33,8 +32,7 @@ class PaymentListCreateView(generics.ListCreateAPIView):
     def get_serializer_context(self):
         ctx = super().get_serializer_context()
         if self.request.method == "POST":
-            wallet, _ = Wallet.objects.get_or_create(id=1)
-            ctx["wallet"] = wallet
+            ctx["wallet"] = Wallet.objects.get(id=1)
         return ctx
 
     def create(self, request, *args, **kwargs):

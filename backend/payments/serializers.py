@@ -8,6 +8,10 @@ MIN_AMOUNT = Decimal("0.01")
 MAX_AMOUNT = Decimal("10000000.00")
 
 
+def minor_to_str(amount_minor):
+    return f"{amount_minor / 100:.2f}"
+
+
 class WalletSerializer(serializers.ModelSerializer):
     balance = serializers.SerializerMethodField()
 
@@ -16,7 +20,7 @@ class WalletSerializer(serializers.ModelSerializer):
         fields = ["balance"]
 
     def get_balance(self, obj):
-        return f"{obj.balance_minor / 100:.2f}"
+        return minor_to_str(obj.balance_minor)
 
 
 class AmountField(serializers.CharField):
@@ -53,7 +57,7 @@ class PaymentSerializer(serializers.ModelSerializer):
         fields = ["id", "amount", "status", "created_at"]
 
     def get_amount(self, obj):
-        return f"{obj.amount_minor / 100:.2f}"
+        return minor_to_str(obj.amount_minor)
 
 
 class WebhookSerializer(serializers.Serializer):
