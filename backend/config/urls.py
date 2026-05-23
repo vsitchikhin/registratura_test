@@ -1,11 +1,9 @@
-from django.http import JsonResponse
 from django.urls import path
 
-
-def health(request):
-    return JsonResponse({"status": "ok"})
-
+from payments.views import PaymentListCreateView, WalletView, WebhookView
 
 urlpatterns = [
-    path("api/health/", health),
+    path("api/wallet/", WalletView.as_view()),
+    path("api/payments/", PaymentListCreateView.as_view()),
+    path("api/webhooks/payment/", WebhookView.as_view()),
 ]

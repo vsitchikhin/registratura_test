@@ -26,18 +26,22 @@ select = [
 ]
 ignore = [
     "DJ001",     # null=True on CharField OK for optional fields
+    "DJ008",     # __str__ not needed for compact codebase
     "RET504",    # unnecessary assignment before return - readability
     "PLR0913",   # too many arguments - sometimes unavoidable
     "PLR2004",   # magic value in comparison - overkill for tests
+    "RUF012",    # ClassVar annotation for Django Meta - noise
 ]
 
 [tool.ruff.lint.isort]
 known-first-party = ["config", "payments"]
 
 [tool.ruff.lint.per-file-ignores]
-"**/tests.py" = ["S101", "S106", "ARG"]
-"**/tests/**" = ["S101", "S106", "ARG"]
+"**/tests.py" = ["S101", "S106", "ARG", "PLC0415"]
+"**/tests/**" = ["S101", "S106", "ARG", "PLC0415"]
 "**/tasks.py" = ["ARG001"]
 "manage.py" = ["PLC0415"]
-"**/views.py" = ["ARG001"]
+"**/views.py" = ["ARG001", "ARG002"]
 "**/urls.py" = ["ARG001"]
+"**/migrations/**" = ["E501", "RUF012", "I001", "N999"]
+"payment_operator/**" = ["S311"]

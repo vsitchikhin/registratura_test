@@ -41,6 +41,9 @@ STATIC_URL = "static/"
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
+    "DEFAULT_AUTHENTICATION_CLASSES": [],
+    "DEFAULT_PERMISSION_CLASSES": [],
+    "UNAUTHENTICATED_USER": None,
 }
 
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "memory://")
