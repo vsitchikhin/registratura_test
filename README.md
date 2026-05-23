@@ -49,10 +49,10 @@ PostgreSQL ← все данные
 
 ## Денежная модель
 
-- Все суммы хранятся в **целых копейках** (`BigIntegerField`). Никаких float.
-- **Ledger** (`LedgerEntry`) — источник истины. `Wallet.balance_minor` — денормализованный кэш.
-- Изменение баланса и создание записи в ledger — **всегда в одной DB-транзакции**.
-- Баланс верифицируем: `SUM(LedgerEntry.amount_minor) == Wallet.balance_minor`.
+- Все суммы хранятся в **копейках** через `DecimalField` — точная арифметика без потерь на промежуточных вычислениях.
+- **Ledger** (`LedgerEntry`) — журнал всех переходов статуса платежа. Каждая смена статуса (`NEW → PROCESSING → SUCCEEDED/FAILED`) фиксируется отдельной записью.
+- `Wallet.balance_minor` — денормализованный кэш, обновляется только при `SUCCEEDED`.
+- Баланс верифицируем: `SUM(LedgerEntry.amount_minor) WHERE status=SUCCEEDED == Wallet.balance_minor`.
 
 ## Гарантии целостности
 
@@ -60,7 +60,7 @@ PostgreSQL ← все данные
 |--------|--------|
 | Двойной webhook | Unique `event_id` + `get_or_create` в `PaymentWebhookLog` |
 | Race condition на платеже | `select_for_update()` на `Payment` |
-| Двойное зачисление | `OneToOneField` на `LedgerEntry.payment` (DB constraint) |
+| Двойное зачисление | `UniqueConstraint(payment, status)` на `LedgerEntry` (DB constraint) |
 | Race condition на балансе | `F('balance_minor') + amount` (атомарный SQL increment) |
 | Неконсистентность данных | `transaction.atomic()` — всё или ничего |
 | Дубль Celery task | Проверка `status != NEW` перед переводом в `PROCESSING` |
@@ -123,7 +123,7 @@ make shell           # Django shell
 | FSM (7) | Допустимые и запрещённые переходы статусов |
 | Валидация суммы (9) | Корректные суммы, ноль, отрицательные, 3+ знака, превышение лимита |
 | API (3) | Создание платежа, список, баланс |
-| Webhook success/fail (2) | Зачисление при `succeeded`, отсутствие при `failed` |
+| Webhook success/fail (2) | Зачисление при `succeeded`, запись в ledger при `failed` без изменения баланса |
 | Идемпотентность (3) | Дубль webhook, конфликт статусов, несуществующий платёж |
 | Накопление баланса (1) | Баланс корректно суммируется после нескольких платежей |
 | Worker (1) | Повторный вызов для уже обработанного платежа — no-op |
