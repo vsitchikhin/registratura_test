@@ -38,7 +38,7 @@ repos:
 
       - id: docker-integration-tests
         name: docker integration tests (Postgres)
-        entry: bash -c 'docker compose run --rm backend python manage.py test; EXIT=$?; docker compose down --timeout 5 > /dev/null 2>&1; exit $EXIT'
+        entry: bash -c 'docker compose run --rm -T backend python manage.py test; EXIT=$?; docker compose down --timeout 5 > /dev/null 2>&1; exit $EXIT'
         language: system
         pass_filenames: false
         stages: [pre-push]

@@ -63,7 +63,7 @@ precommit:
 
 test-docker:
 	docker compose build --quiet
-	docker compose run --rm backend python manage.py test
+	docker compose run --rm -T backend python manage.py test
 	docker compose down --timeout 5
 
 install-hooks:
