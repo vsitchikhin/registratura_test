@@ -54,8 +54,7 @@ export default function App() {
     }
   }, [payments, refresh])
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const handlePayment = async () => {
     setError('')
     setLoading(true)
     try {
@@ -77,7 +76,7 @@ export default function App() {
         {balance !== null ? `${balance} ₽` : '...'}
       </div>
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
         <input
           type="text"
           inputMode="decimal"
@@ -88,13 +87,13 @@ export default function App() {
           style={{ padding: '8px 12px', fontSize: '1rem', flex: 1 }}
         />
         <button
-          type="submit"
+          onClick={handlePayment}
           disabled={loading || !amount}
           style={{ padding: '8px 20px', fontSize: '1rem', cursor: 'pointer' }}
         >
           {loading ? '...' : 'Пополнить'}
         </button>
-      </form>
+      </div>
 
       {error && <div style={{ color: '#d93025', marginBottom: '16px' }}>{error}</div>}
 
